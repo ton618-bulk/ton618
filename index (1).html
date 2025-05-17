@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Benford's Law Analyzer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    h1 {
+      text-align: center;
+    }
+    #inputArea, #results {
+      margin: 20px auto;
+      max-width: 800px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      resize: vertical;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    canvas {
+      margin-top: 20px;
+      width: 100% !important;
+      height: 400px !important;
+    }
+    #probabilities {
+      margin-top: 20px;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>Benford's Law Analyzer</h1>
+  <div id="inputArea">
+    <h3>Enter numbers (comma, space, newline separated):</h3>
+    <textarea id="numberInput" placeholder="e.g. 123, 456 7890\n234 98.1 305..."></textarea>
+    <button onclick="analyzeData()">Analyze Numbers</button>
+  </div>
+  <div id="results">
+    <canvas id="benfordChart"></canvas>
+    <div id="probabilities"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    let benfordChart = null;
+
+    function getFirstDigit(num) {
+      const s = Math.abs(num).toString();
+      for (let char of s) {
+        if (char >= '1' && char <= '9') return parseInt(char);
+      }
+      return null;
+    }
+
+    function analyzeNumbers(numbers) {
+      const freq = Array(9).fill(0);
+      numbers.forEach(num => {
+        const digit = getFirstDigit(num);
+        if (digit !== null) freq[digit - 1]++;
+      });
+
+      const total = freq.reduce((a, b) => a + b, 0);
+      if (total === 0) {
+        alert("No valid leading digits found.");
+        return;
+      }
+      const probabilities = freq.map(f => ((f / total) * 100).toFixed(2));
+
+      const ctx = document.getElementById('benfordChart').getContext('2d');
+      if (benfordChart) benfordChart.destroy();
+
+      benfordChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['1','2','3','4','5','6','7','8','9'],
+          datasets: [{
+            label: 'Frequency',
+            data: freq,
+            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Count'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Leading Digit'
+              }
+            }
+          }
+        }
+      });
+
+      let probText = 'Probabilities by first digit:\n';
+      probabilities.forEach((p, i) => {
+        probText += `${i+1}: ${p}%\n`;
+      });
+      document.getElementById('probabilities').textContent = probText;
+    }
+
+    function analyzeData() {
+      const input = document.getElementById('numberInput').value;
+      // 숫자 추출: 마이너스 제외, 소수점 포함 숫자, 공백/쉼표/줄바꿈 구분
+      const matched = input.match(/\d*\.?\d+/g);
+      if (!matched || matched.length === 0) {
+        alert('No valid numbers found. Please enter numeric values.');
+        return;
+      }
+      const numbers = matched.map(Number).filter(n => n > 0);
+      if (numbers.length === 0) {
+        alert('No valid positive numbers found.');
+        return;
+      }
+      analyzeNumbers(numbers);
+    }
+  </script>
+</body>
+</html>
